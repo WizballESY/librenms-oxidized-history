@@ -10,7 +10,7 @@ class LibreNmsOxidizedHistoryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->mergeConfigFrom(__DIR__ . '/../config/oxidized-history.php', 'oxidized-history');
     }
 
     public function boot(): void
