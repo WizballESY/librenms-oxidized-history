@@ -16,7 +16,7 @@ class HistoryApiClient
             $request = Http::acceptJson()
                 ->timeout((float) config('oxidized-history.api_timeout', 2.0));
 
-            $token = config('oxidized-history.api_token');
+            $token = $this->apiToken();
 
             if (is_string($token) && $token !== '') {
                 $request = $request->withToken($token);
@@ -74,7 +74,7 @@ class HistoryApiClient
             $request = Http::acceptJson()
                 ->timeout((float) config('oxidized-history.api_timeout', 2.0));
 
-            $token = config('oxidized-history.api_token');
+            $token = $this->apiToken();
 
             if (is_string($token) && $token !== '') {
                 $request = $request->withToken($token);
@@ -142,7 +142,7 @@ class HistoryApiClient
             $request = Http::acceptJson()
                 ->timeout((float) config('oxidized-history.api_timeout', 2.0));
 
-            $token = config('oxidized-history.api_token');
+            $token = $this->apiToken();
 
             if (is_string($token) && $token !== '') {
                 $request = $request->withToken($token);
@@ -185,6 +185,25 @@ class HistoryApiClient
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+
+
+    private function apiToken(): ?string
+    {
+        $tokenFile = config('oxidized-history.api_token_file');
+
+        if (is_string($tokenFile) && $tokenFile !== '' && is_readable($tokenFile)) {
+            $token = trim((string) file_get_contents($tokenFile));
+
+            if ($token !== '') {
+                return $token;
+            }
+        }
+
+        $token = config('oxidized-history.api_token');
+
+        return is_string($token) && $token !== '' ? $token : null;
     }
 
 
