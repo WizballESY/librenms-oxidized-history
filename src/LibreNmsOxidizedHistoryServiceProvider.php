@@ -1,0 +1,38 @@
+<?php
+
+namespace WizballEsy\LibreNmsOxidizedHistory;
+
+use App\View\Components\Device\PageTabs;
+use Illuminate\Support\ServiceProvider;
+use WizballEsy\LibreNmsOxidizedHistory\Http\Controllers\HistoricalConfigTabController;
+
+class LibreNmsOxidizedHistoryServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        //
+    }
+
+    public function boot(): void
+    {
+        $viewPath = __DIR__ . '/../resources/views';
+
+        $this->loadViewsFrom($viewPath, 'librenms-oxidized-history');
+
+        /*
+         * LibreNMS DeviceController renders device tab views by looking for:
+         *   view('device.tabs.<tab-slug>')
+         *
+         * Because that is not namespaced, we prepend this package view path so
+         * resources/views/device/tabs/historical-config.blade.php can be found
+         * without modifying LibreNMS core views.
+         */
+        if ($this->app->bound('view')) {
+            $this->app['view']->getFinder()->prependLocation($viewPath);
+        }
+
+        if (class_exists(PageTabs::class)) {
+            PageTabs::$tabsClasses['historical-config'] = HistoricalConfigTabController::class;
+        }
+    }
+}

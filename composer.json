@@ -1,0 +1,28 @@
+{
+  "name": "wizballesy/librenms-oxidized-history",
+  "description": "LibreNMS package for viewing historical Oxidized configuration history from an external history API.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "WizballEsy"
+    }
+  ],
+  "require": {
+    "php": ">=8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "WizballEsy\\LibreNmsOxidizedHistory\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "WizballEsy\\LibreNmsOxidizedHistory\\LibreNmsOxidizedHistoryServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
