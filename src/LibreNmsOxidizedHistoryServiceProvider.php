@@ -32,7 +32,31 @@ class LibreNmsOxidizedHistoryServiceProvider extends ServiceProvider
         }
 
         if (class_exists(PageTabs::class)) {
-            PageTabs::$tabsClasses['historical-config'] = HistoricalConfigTabController::class;
+            $this->insertDeviceTabAfter(
+                'showconfig',
+                'historical-config',
+                HistoricalConfigTabController::class
+            );
         }
     }
+    private function insertDeviceTabAfter(string $afterSlug, string $slug, string $controllerClass): void
+    {
+        $tabs = PageTabs::$tabsClasses;
+        $newTabs = [];
+
+        foreach ($tabs as $key => $class) {
+            $newTabs[$key] = $class;
+
+            if ($key === $afterSlug) {
+                $newTabs[$slug] = $controllerClass;
+            }
+        }
+
+        if (! isset($newTabs[$slug])) {
+            $newTabs[$slug] = $controllerClass;
+        }
+
+        PageTabs::$tabsClasses = $newTabs;
+    }
+
 }
