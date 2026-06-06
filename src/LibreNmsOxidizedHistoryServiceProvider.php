@@ -39,6 +39,7 @@ class LibreNmsOxidizedHistoryServiceProvider extends ServiceProvider
             );
         }
     }
+
     private function insertDeviceTabAfter(string $afterSlug, string $slug, string $controllerClass): void
     {
         $tabs = PageTabs::$tabsClasses;
