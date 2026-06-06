@@ -21,6 +21,9 @@
             }
         }
 
+        $latestVersion = $versions[0] ?? null;
+        $latestTime = is_array($latestVersion) ? ($latestVersion['time'] ?? $latestVersion['date'] ?? '') : '';
+
         $configText = (string) ($selectedConfig['config'] ?? '');
         $diffFiles = $selectedDiff['files'] ?? [];
         $diffText = '';
@@ -58,36 +61,28 @@
             <div class="col-sm-4">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        Stored history: <strong>{{ count($versions) }} versions</strong>
+                        History status: <strong>success</strong>
                     </div>
                     <ul class="list-group">
                         <li class="list-group-item">
                             <strong>Node:</strong>
                             @if($nodeFull)
-                                <code>{{ $nodeFull }}</code>
+                                {{ $nodeFull }}
                             @else
                                 <span class="text-danger">Not resolved</span>
                             @endif
                         </li>
                         <li class="list-group-item">
-                            <strong>Selected:</strong>
-                            @if($selectedOid)
-                                <code>{{ substr($selectedOid, 0, 12) }}</code>
-                            @else
-                                <span class="text-muted">None</span>
-                            @endif
+                            <strong>IP:</strong> {{ $device->ip }}
                         </li>
                         <li class="list-group-item">
-                            <strong>Previous:</strong>
-                            @if($selectedPreviousOid)
-                                <code>{{ substr($selectedPreviousOid, 0, 12) }}</code>
-                            @else
-                                <span class="text-muted">None</span>
-                            @endif
+                            <strong>Model:</strong> {{ strtoupper((string) $device->os) }}
                         </li>
-                        <li class="list-group-item">
-                            <strong>API:</strong>
-                            <code>{{ $data['api_url'] ?? '' }}</code>
+                        <li class="list-group-item" style="overflow:hidden">
+                            <strong>Last Stored:</strong> {{ $latestTime }}
+                            <span class="label label-primary pull-right">
+                                {{ count($versions) }} versions
+                            </span>
                         </li>
                     </ul>
                 </div>
@@ -107,6 +102,7 @@
                                         $oid = $version['oid'] ?? '';
                                         $date = $version['time'] ?? $version['date'] ?? '';
                                         $prefix = '&nbsp;&nbsp;';
+
                                         if ($selectedOid === $oid) {
                                             $prefix = $showDiff ? '+' : '*';
                                         } elseif ($selectedPreviousOid === $oid && $showDiff) {
