@@ -43,13 +43,39 @@ class HistoricalConfigTabController implements DeviceTab
             'error' => $resolved['warning'],
         ];
 
+        $selectedOid = null;
+        $selectedConfig = [
+            'ok' => false,
+            'config' => null,
+            'bytes' => null,
+            'lines' => null,
+            'status' => null,
+            'error' => null,
+        ];
+
         if ($resolved['node_full']) {
             $history = $client->versions($resolved['node_full']);
+
+            if ($history['ok'] && ! empty($history['versions'])) {
+                $validOids = array_values(array_filter(array_map(
+                    static fn ($version) => is_array($version) ? ($version['oid'] ?? null) : null,
+                    $history['versions']
+                )));
+
+                $requestedOid = (string) $request->query('oid', '');
+                $selectedOid = in_array($requestedOid, $validOids, true)
+                    ? $requestedOid
+                    : (string) $validOids[0];
+
+                $selectedConfig = $client->versionConfig($resolved['node_full'], $selectedOid);
+            }
         }
 
         return [
             'resolved' => $resolved,
             'history' => $history,
+            'selected_oid' => $selectedOid,
+            'selected_config' => $selectedConfig,
             'api_url' => rtrim((string) config('oxidized-history.api_url'), '/'),
         ];
     }

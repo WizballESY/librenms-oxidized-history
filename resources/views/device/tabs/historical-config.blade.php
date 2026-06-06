@@ -48,6 +48,48 @@
                         {{ count($data['history']['versions'] ?? []) }} stored versions returned by the history API.
                     </div>
 
+                    <form method="get" class="form-inline" style="margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label for="historical-config-oid">Version</label>
+                            <select id="historical-config-oid" name="oid" class="form-control input-sm">
+                                @foreach(($data['history']['versions'] ?? []) as $version)
+                                    @php
+                                        $oid = $version['oid'] ?? '';
+                                        $label = trim(($version['time'] ?? $version['date'] ?? '') . ' - ' . substr($oid, 0, 12) . ' - ' . ($version['message'] ?? ''));
+                                    @endphp
+                                    <option value="{{ $oid }}" @selected(($data['selected_oid'] ?? null) === $oid)>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">View version</button>
+                    </form>
+
+                    @if(($data['selected_config']['ok'] ?? false))
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <strong>Selected config</strong>
+                                @if($data['selected_oid'] ?? null)
+                                    <span class="text-muted">
+                                        {{ substr($data['selected_oid'], 0, 12) }}
+                                    </span>
+                                @endif
+                                <span class="pull-right text-muted">
+                                    {{ $data['selected_config']['lines'] ?? 0 }} lines,
+                                    {{ $data['selected_config']['bytes'] ?? 0 }} bytes
+                                </span>
+                            </div>
+                            <pre style="max-height: 700px; overflow: auto; white-space: pre; margin: 0;">{{ $data['selected_config']['config'] ?? '' }}</pre>
+                        </div>
+                    @else
+                        <div class="alert alert-warning">
+                            <strong>Could not load selected config.</strong>
+                            <br>
+                            {{ $data['selected_config']['error'] ?? 'Unknown error' }}
+                        </div>
+                    @endif
+
                     <table class="table table-condensed table-striped">
                         <thead>
                             <tr>
