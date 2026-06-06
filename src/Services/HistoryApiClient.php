@@ -121,6 +121,73 @@ class HistoryApiClient
         }
     }
 
+
+    /**
+     * @return array{ok: bool, files: array<int, array<string, mixed>>, status: int|null, error: string|null}
+     */
+    public function diff(string $nodeFull, string $oidNew, string $oidOld, bool $includePatch = true): array
+    {
+        foreach ([$oidNew, $oidOld] as $oid) {
+            if (! preg_match('/\A[0-9a-fA-F]{40}\z/', $oid)) {
+                return [
+                    'ok' => false,
+                    'files' => [],
+                    'status' => null,
+                    'error' => 'Invalid commit id.',
+                ];
+            }
+        }
+
+        try {
+            $request = Http::acceptJson()
+                ->timeout((float) config('oxidized-history.api_timeout', 2.0));
+
+            $token = config('oxidized-history.api_token');
+
+            if (is_string($token) && $token !== '') {
+                $request = $request->withToken($token);
+            }
+
+            $response = $request->get($this->baseUrl() . '/node/history/diffs.json', [
+                'node_full' => $nodeFull,
+                'oid' => $oidNew,
+                'oid2' => $oidOld,
+                'include_patch' => $includePatch ? 1 : 0,
+            ]);
+
+            if ($response->successful()) {
+                $payload = $response->json();
+                $files = is_array($payload) && isset($payload['files']) && is_array($payload['files'])
+                    ? $payload['files']
+                    : [];
+
+                return [
+                    'ok' => is_array($payload) && $files !== [],
+                    'files' => $files,
+                    'status' => $response->status(),
+                    'error' => is_array($payload) && $files !== []
+                        ? null
+                        : 'Invalid JSON response from history API.',
+                ];
+            }
+
+            return [
+                'ok' => false,
+                'files' => [],
+                'status' => $response->status(),
+                'error' => $response->json('error') ?: $response->body(),
+            ];
+        } catch (Throwable $e) {
+            return [
+                'ok' => false,
+                'files' => [],
+                'status' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+
     private function baseUrl(): string
     {
         return rtrim((string) config('oxidized-history.api_url', 'http://127.0.0.1:8899'), '/');

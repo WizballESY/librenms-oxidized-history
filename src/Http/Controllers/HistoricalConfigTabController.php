@@ -52,6 +52,14 @@ class HistoricalConfigTabController implements DeviceTab
             'status' => null,
             'error' => null,
         ];
+        $selectedPreviousOid = null;
+        $selectedDiff = [
+            'ok' => false,
+            'files' => [],
+            'status' => null,
+            'error' => null,
+        ];
+        $showDiff = $request->boolean('show_diff');
 
         if ($resolved['node_full']) {
             $history = $client->versions($resolved['node_full']);
@@ -68,6 +76,15 @@ class HistoricalConfigTabController implements DeviceTab
                     : (string) $validOids[0];
 
                 $selectedConfig = $client->versionConfig($resolved['node_full'], $selectedOid);
+
+                $selectedIndex = array_search($selectedOid, $validOids, true);
+                if ($selectedIndex !== false && isset($validOids[$selectedIndex + 1])) {
+                    $selectedPreviousOid = (string) $validOids[$selectedIndex + 1];
+                }
+
+                if ($showDiff && $selectedPreviousOid) {
+                    $selectedDiff = $client->diff($resolved['node_full'], $selectedOid, $selectedPreviousOid, true);
+                }
             }
         }
 
@@ -75,7 +92,10 @@ class HistoricalConfigTabController implements DeviceTab
             'resolved' => $resolved,
             'history' => $history,
             'selected_oid' => $selectedOid,
+            'selected_previous_oid' => $selectedPreviousOid,
             'selected_config' => $selectedConfig,
+            'show_diff' => $showDiff,
+            'selected_diff' => $selectedDiff,
             'api_url' => rtrim((string) config('oxidized-history.api_url'), '/'),
         ];
     }

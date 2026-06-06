@@ -67,6 +67,59 @@
                     </form>
 
                     @if(($data['selected_config']['ok'] ?? false))
+                        <div class="btn-toolbar" style="margin-bottom: 10px;">
+                            @if(($data['selected_previous_oid'] ?? null))
+                                @if($data['show_diff'] ?? false)
+                                    <a class="btn btn-default btn-sm"
+                                       href="{{ request()->url() . '?' . http_build_query(['oid' => $data['selected_oid']]) }}">
+                                        Hide diff
+                                    </a>
+                                @else
+                                    <a class="btn btn-info btn-sm"
+                                       href="{{ request()->url() . '?' . http_build_query(['oid' => $data['selected_oid'], 'show_diff' => 1]) }}">
+                                        Diff with previous
+                                    </a>
+                                @endif
+                            @else
+                                <button class="btn btn-default btn-sm" type="button" disabled>
+                                    No previous version
+                                </button>
+                            @endif
+                        </div>
+
+                        @if(($data['show_diff'] ?? false) && ($data['selected_previous_oid'] ?? null))
+                            @if(($data['selected_diff']['ok'] ?? false))
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        <strong>Diff with previous</strong>
+                                        <span class="text-muted">
+                                            {{ substr($data['selected_oid'] ?? '', 0, 12) }}
+                                            vs
+                                            {{ substr($data['selected_previous_oid'] ?? '', 0, 12) }}
+                                        </span>
+                                    </div>
+                                    @foreach(($data['selected_diff']['files'] ?? []) as $file)
+                                        <div class="panel-body" style="padding-bottom: 0;">
+                                            <strong>{{ $file['old_file'] ?? '' }}</strong>
+                                            →
+                                            <strong>{{ $file['new_file'] ?? '' }}</strong>
+                                            <span class="text-muted">
+                                                +{{ $file['additions'] ?? 0 }}
+                                                -{{ $file['deletions'] ?? 0 }}
+                                            </span>
+                                        </div>
+                                        <pre style="max-height: 500px; overflow: auto; white-space: pre; margin: 0;">{{ $file['patch'] ?? '' }}</pre>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="alert alert-warning">
+                                    <strong>Could not load diff.</strong>
+                                    <br>
+                                    {{ $data['selected_diff']['error'] ?? 'Unknown error' }}
+                                </div>
+                            @endif
+                        @endif
+
                         <div class="panel panel-default">
                             <div class="panel-heading">
                                 <strong>Selected config</strong>
