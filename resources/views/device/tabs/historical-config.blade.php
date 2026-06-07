@@ -159,7 +159,7 @@
                                 @endif
                             </li>
                             <li class="list-group-item">
-                                <strong>Repo discovery:</strong>
+                                <strong>Detected backup repos:</strong>
                                 @if(count($apiRepos) > 0)
                                     {{ implode(', ', $apiRepos) }}
                                 @else
