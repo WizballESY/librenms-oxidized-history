@@ -35,6 +35,7 @@ class HistoricalConfigTabController implements DeviceTab
         $resolver = app(OxidizedNodeResolver::class);
         $client = app(HistoryApiClient::class);
 
+        $apiHealth = $client->health();
         $resolved = $resolver->resolve($device);
         $history = [
             'ok' => false,
@@ -96,6 +97,7 @@ class HistoricalConfigTabController implements DeviceTab
             'selected_config' => $selectedConfig,
             'show_diff' => $showDiff,
             'selected_diff' => $selectedDiff,
+            'api_health' => $apiHealth,
             'api_url' => rtrim((string) config('oxidized-history.api_url'), '/'),
         ];
     }

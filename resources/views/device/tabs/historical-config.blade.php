@@ -12,6 +12,13 @@
         $selectedDiff = $data['selected_diff'] ?? [];
         $showDiff = (bool) ($data['show_diff'] ?? false);
         $nodeFull = $resolved['node_full'] ?? null;
+        $resolvedGroup = $resolved['group'] ?? null;
+
+        $apiHealth = $data['api_health'] ?? [];
+        $apiPayload = is_array($apiHealth['payload'] ?? null) ? $apiHealth['payload'] : [];
+        $apiConfig = is_array($apiPayload['config'] ?? null) ? $apiPayload['config'] : [];
+        $apiLimits = is_array($apiConfig['limits'] ?? null) ? $apiConfig['limits'] : [];
+        $apiOk = (bool) ($apiHealth['ok'] ?? false);
 
         $selectedVersion = null;
         foreach ($versions as $version) {
@@ -73,10 +80,18 @@
                             @endif
                         </li>
                         <li class="list-group-item">
+                            <strong>Oxidized group:</strong>
+                            @if($resolvedGroup)
+                                {{ $resolvedGroup }}
+                            @else
+                                <span class="text-muted">not resolved</span>
+                            @endif
+                        </li>
+                        <li class="list-group-item">
                             <strong>IP:</strong> {{ $device->ip }}
                         </li>
                         <li class="list-group-item">
-                            <strong>Model:</strong> {{ strtoupper((string) $device->os) }}
+                            <strong>LibreNMS OS:</strong> {{ $device->os }}
                         </li>
                         <li class="list-group-item" style="overflow:hidden">
                             <strong>Last Stored:</strong> {{ $latestTime }}
@@ -84,6 +99,47 @@
                                 {{ count($versions) }} versions
                             </span>
                         </li>
+                    </ul>
+                </div>
+
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        API:
+                        @if($apiOk)
+                            <strong>ok</strong>
+                            <span class="label label-success pull-right">reachable</span>
+                        @else
+                            <strong>error</strong>
+                            <span class="label label-danger pull-right">unreachable</span>
+                        @endif
+                    </div>
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <strong>Version:</strong>
+                            {{ $apiPayload['version'] ?? 'Unknown' }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Auth:</strong>
+                            {{ ($apiConfig['auth_enabled'] ?? false) ? 'enabled' : 'disabled' }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Limits:</strong>
+                            @if(count($apiLimits) > 0)
+                                {{ $apiLimits['max_versions'] ?? '?' }} versions /
+                                {{ $apiLimits['max_config_bytes'] ?? '?' }} bytes
+                            @else
+                                <span class="text-muted">not reported</span>
+                            @endif
+                        </li>
+                        @if(!$apiOk)
+                            <li class="list-group-item text-danger">
+                                <strong>Error:</strong>
+                                {{ $apiHealth['error'] ?? 'Unknown error' }}
+                                @if(!empty($apiHealth['status']))
+                                    <span class="text-muted">HTTP {{ $apiHealth['status'] }}</span>
+                                @endif
+                            </li>
+                        @endif
                     </ul>
                 </div>
             </div>
