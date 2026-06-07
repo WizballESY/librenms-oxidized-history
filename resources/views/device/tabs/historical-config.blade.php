@@ -94,7 +94,7 @@
                         <label for="historical-config-oid" class="col-sm-2 control-label">
                             Config version
                         </label>
-                        <div class="col-sm-8">
+                        <div class="col-sm-6">
                             <select id="historical-config-oid" name="oid" class="form-control">
                                 @php $versionNumber = count($versions); @endphp
                                 @foreach($versions as $version)
@@ -119,7 +119,7 @@
                     </div>
 
                     <div class="form-group">
-                        <div class="col-sm-offset-2 col-sm-8">
+                        <div class="col-sm-offset-2 col-sm-6">
                             <button type="submit" class="btn btn-primary btn-sm" name="show" value="1">
                                 Show version
                             </button>
