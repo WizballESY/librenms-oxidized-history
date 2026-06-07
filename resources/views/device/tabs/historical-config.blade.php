@@ -18,7 +18,9 @@
         $apiPayload = is_array($apiHealth['payload'] ?? null) ? $apiHealth['payload'] : [];
         $apiConfig = is_array($apiPayload['config'] ?? null) ? $apiPayload['config'] : [];
         $apiLimits = is_array($apiConfig['limits'] ?? null) ? $apiConfig['limits'] : [];
+        $apiRepos = is_array($apiConfig['discovered_repositories'] ?? null) ? $apiConfig['discovered_repositories'] : [];
         $apiOk = (bool) ($apiHealth['ok'] ?? false);
+        $apiDebug = request()->boolean('api_debug');
 
         $selectedVersion = null;
         foreach ($versions as $version) {
@@ -99,49 +101,84 @@
                                 {{ count($versions) }} versions
                             </span>
                         </li>
+                        <li class="list-group-item" style="overflow:hidden">
+                            <strong>API:</strong>
+                            @if($apiOk)
+                                <span class="text-success">ok</span>
+                            @else
+                                <span class="text-danger">error</span>
+                            @endif
+                            @if(!empty($apiPayload['version']))
+                                <span class="text-muted">{{ $apiPayload['version'] }}</span>
+                            @endif
+                            @if($apiDebug)
+                                <a class="pull-right" href="{{ request()->fullUrlWithQuery(['api_debug' => 0]) }}">
+                                    hide diagnostics
+                                </a>
+                            @else
+                                <a class="pull-right" href="{{ request()->fullUrlWithQuery(['api_debug' => 1]) }}">
+                                    debug
+                                </a>
+                            @endif
+                        </li>
                     </ul>
                 </div>
 
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        API:
-                        @if($apiOk)
-                            <strong>ok</strong>
-                            <span class="label label-success pull-right">reachable</span>
-                        @else
-                            <strong>error</strong>
-                            <span class="label label-danger pull-right">unreachable</span>
-                        @endif
-                    </div>
-                    <ul class="list-group">
-                        <li class="list-group-item">
-                            <strong>Version:</strong>
-                            {{ $apiPayload['version'] ?? 'Unknown' }}
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Auth:</strong>
-                            {{ ($apiConfig['auth_enabled'] ?? false) ? 'enabled' : 'disabled' }}
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Limits:</strong>
-                            @if(count($apiLimits) > 0)
-                                {{ $apiLimits['max_versions'] ?? '?' }} versions /
-                                {{ $apiLimits['max_config_bytes'] ?? '?' }} bytes
+                @if($apiDebug || !$apiOk)
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            API diagnostics:
+                            @if($apiOk)
+                                <strong>ok</strong>
+                                <span class="label label-success pull-right">reachable</span>
                             @else
-                                <span class="text-muted">not reported</span>
+                                <strong>error</strong>
+                                <span class="label label-danger pull-right">unreachable</span>
                             @endif
-                        </li>
-                        @if(!$apiOk)
-                            <li class="list-group-item text-danger">
-                                <strong>Error:</strong>
-                                {{ $apiHealth['error'] ?? 'Unknown error' }}
-                                @if(!empty($apiHealth['status']))
-                                    <span class="text-muted">HTTP {{ $apiHealth['status'] }}</span>
+                        </div>
+                        <ul class="list-group">
+                            <li class="list-group-item">
+                                <strong>Service:</strong>
+                                {{ $apiPayload['service'] ?? 'Unknown' }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Version:</strong>
+                                {{ $apiPayload['version'] ?? 'Unknown' }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Auth:</strong>
+                                {{ ($apiConfig['auth_enabled'] ?? false) ? 'enabled' : 'disabled' }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Limits:</strong>
+                                @if(count($apiLimits) > 0)
+                                    {{ $apiLimits['max_versions'] ?? '?' }} versions /
+                                    {{ $apiLimits['max_config_bytes'] ?? '?' }} bytes
+                                @else
+                                    <span class="text-muted">not reported</span>
                                 @endif
                             </li>
-                        @endif
-                    </ul>
-                </div>
+                            <li class="list-group-item">
+                                <strong>Repo discovery:</strong>
+                                @if(count($apiRepos) > 0)
+                                    {{ implode(', ', $apiRepos) }}
+                                @else
+                                    <span class="text-muted">not reported by this API version</span>
+                                @endif
+                            </li>
+                            @if(!$apiOk)
+                                <li class="list-group-item text-danger">
+                                    <strong>Error:</strong>
+                                    {{ $apiHealth['error'] ?? 'Unknown error' }}
+                                    @if(!empty($apiHealth['status']))
+                                        <span class="text-muted">HTTP {{ $apiHealth['status'] }}</span>
+                                    @endif
+                                </li>
+                            @endif
+                        </ul>
+                    </div>
+                @endif
+
             </div>
 
             <div class="col-sm-8">
