@@ -2,25 +2,54 @@
 
 namespace WizballEsy\LibreNmsOxidizedHistory\Services;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class HistoryApiClient
 {
     /**
+     * @return array{ok: bool, payload: array<string, mixed>|null, status: int|null, error: string|null}
+     */
+    public function health(): array
+    {
+        try {
+            $response = $this->request()->get($this->baseUrl() . '/health');
+
+            if ($response->successful()) {
+                $payload = $response->json();
+
+                return [
+                    'ok' => is_array($payload),
+                    'payload' => is_array($payload) ? $payload : null,
+                    'status' => $response->status(),
+                    'error' => is_array($payload) ? null : 'Invalid JSON response from history API.',
+                ];
+            }
+
+            return [
+                'ok' => false,
+                'payload' => null,
+                'status' => $response->status(),
+                'error' => $response->json('error') ?: $response->body(),
+            ];
+        } catch (Throwable $e) {
+            return [
+                'ok' => false,
+                'payload' => null,
+                'status' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * @return array{ok: bool, versions: array<int, array<string, mixed>>, status: int|null, error: string|null}
      */
     public function versions(string $nodeFull): array
     {
         try {
-            $request = Http::acceptJson()
-                ->timeout((float) config('oxidized-history.api_timeout', 2.0));
-
-            $token = $this->apiToken();
-
-            if (is_string($token) && $token !== '') {
-                $request = $request->withToken($token);
-            }
+            $request = $this->request();
 
             $response = $request->get($this->baseUrl() . '/node/history.json', [
                 'node_full' => $nodeFull,
@@ -53,7 +82,6 @@ class HistoryApiClient
         }
     }
 
-
     /**
      * @return array{ok: bool, config: string|null, bytes: int|null, lines: int|null, status: int|null, error: string|null}
      */
@@ -71,14 +99,7 @@ class HistoryApiClient
         }
 
         try {
-            $request = Http::acceptJson()
-                ->timeout((float) config('oxidized-history.api_timeout', 2.0));
-
-            $token = $this->apiToken();
-
-            if (is_string($token) && $token !== '') {
-                $request = $request->withToken($token);
-            }
+            $request = $this->request();
 
             $response = $request->get($this->baseUrl() . '/node/history/view.json', [
                 'node_full' => $nodeFull,
@@ -121,7 +142,6 @@ class HistoryApiClient
         }
     }
 
-
     /**
      * @return array{ok: bool, files: array<int, array<string, mixed>>, status: int|null, error: string|null}
      */
@@ -139,14 +159,7 @@ class HistoryApiClient
         }
 
         try {
-            $request = Http::acceptJson()
-                ->timeout((float) config('oxidized-history.api_timeout', 2.0));
-
-            $token = $this->apiToken();
-
-            if (is_string($token) && $token !== '') {
-                $request = $request->withToken($token);
-            }
+            $request = $this->request();
 
             $response = $request->get($this->baseUrl() . '/node/history/diffs.json', [
                 'node_full' => $nodeFull,
@@ -188,6 +201,19 @@ class HistoryApiClient
     }
 
 
+    private function request(): PendingRequest
+    {
+        $request = Http::acceptJson()
+            ->timeout((float) config('oxidized-history.api_timeout', 2.0));
+
+        $token = $this->apiToken();
+
+        if (is_string($token) && $token !== '') {
+            return $request->withToken($token);
+        }
+
+        return $request;
+    }
 
     private function apiToken(): ?string
     {
