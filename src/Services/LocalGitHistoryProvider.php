@@ -122,14 +122,105 @@ class LocalGitHistoryProvider implements HistoryProvider
 
     public function versionConfig(string $nodeFull, string $oid): array
     {
-        return [
-            'ok' => false,
-            'config' => null,
-            'bytes' => null,
-            'lines' => null,
-            'status' => null,
-            'error' => 'Local Git config provider is not implemented yet.',
-        ];
+        [$group, $node] = $this->parseNodeFull($nodeFull);
+
+        if (! $this->safeSegment($node)) {
+            return [
+                'ok' => false,
+                'config' => null,
+                'bytes' => null,
+                'lines' => null,
+                'status' => 400,
+                'error' => 'invalid node_full/node',
+            ];
+        }
+
+        if (! $this->safeSegment($group)) {
+            return [
+                'ok' => false,
+                'config' => null,
+                'bytes' => null,
+                'lines' => null,
+                'status' => 400,
+                'error' => 'group is required',
+            ];
+        }
+
+        if (! $this->safeOid($oid)) {
+            return [
+                'ok' => false,
+                'config' => null,
+                'bytes' => null,
+                'lines' => null,
+                'status' => 400,
+                'error' => 'invalid oid',
+            ];
+        }
+
+        $repoPath = $this->repoPathForGroup((string) $group);
+
+        if ($repoPath === null) {
+            return [
+                'ok' => false,
+                'config' => null,
+                'bytes' => null,
+                'lines' => null,
+                'status' => 404,
+                'error' => 'repo not found for group ' . $group,
+            ];
+        }
+
+        try {
+            $result = $this->runGit([
+                '--git-dir=' . $repoPath,
+                'show',
+                $oid . ':' . $node,
+            ]);
+
+            if (! $result['ok']) {
+                return [
+                    'ok' => false,
+                    'config' => null,
+                    'bytes' => null,
+                    'lines' => null,
+                    'status' => 404,
+                    'error' => trim((string) $result['error']) ?: 'stored version not found',
+                ];
+            }
+
+            $content = (string) $result['output'];
+            $bytes = strlen($content);
+            $maxBytes = $this->maxConfigBytes();
+
+            if ($bytes > $maxBytes) {
+                return [
+                    'ok' => false,
+                    'config' => null,
+                    'bytes' => $bytes,
+                    'lines' => null,
+                    'status' => 413,
+                    'error' => 'stored version exceeds max_config_bytes',
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'config' => $content,
+                'bytes' => $bytes,
+                'lines' => substr_count($content, "\n"),
+                'status' => 200,
+                'error' => null,
+            ];
+        } catch (Throwable $e) {
+            return [
+                'ok' => false,
+                'config' => null,
+                'bytes' => null,
+                'lines' => null,
+                'status' => 500,
+                'error' => get_class($e) . ': ' . $e->getMessage(),
+            ];
+        }
     }
 
     public function diff(string $nodeFull, string $oidNew, string $oidOld, bool $includePatch = true): array
@@ -191,6 +282,19 @@ class LocalGitHistoryProvider implements HistoryProvider
         $integer = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
         return is_int($integer) ? $integer : 200;
+    }
+
+    private function maxConfigBytes(): int
+    {
+        $value = config('oxidized-history.max_config_bytes', 2000000);
+        $integer = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return is_int($integer) ? $integer : 2000000;
+    }
+
+    private function safeOid(string $value): bool
+    {
+        return preg_match('/\A[0-9a-fA-F]{40}\z/', $value) === 1;
     }
 
     private function repoPathForGroup(string $group): ?string
