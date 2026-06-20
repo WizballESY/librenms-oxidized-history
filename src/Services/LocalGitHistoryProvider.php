@@ -225,12 +225,100 @@ class LocalGitHistoryProvider implements HistoryProvider
 
     public function diff(string $nodeFull, string $oidNew, string $oidOld, bool $includePatch = true): array
     {
-        return [
-            'ok' => false,
-            'files' => [],
-            'status' => null,
-            'error' => 'Local Git diff provider is not implemented yet.',
-        ];
+        [$group, $node] = $this->parseNodeFull($nodeFull);
+
+        if (! $this->safeSegment($node)) {
+            return [
+                'ok' => false,
+                'files' => [],
+                'status' => 400,
+                'error' => 'invalid node_full/node',
+            ];
+        }
+
+        if (! $this->safeSegment($group)) {
+            return [
+                'ok' => false,
+                'files' => [],
+                'status' => 400,
+                'error' => 'group is required',
+            ];
+        }
+
+        if (! $this->safeOid($oidNew)) {
+            return [
+                'ok' => false,
+                'files' => [],
+                'status' => 400,
+                'error' => 'invalid oid',
+            ];
+        }
+
+        if (! $this->safeOid($oidOld)) {
+            return [
+                'ok' => false,
+                'files' => [],
+                'status' => 400,
+                'error' => 'invalid oid2',
+            ];
+        }
+
+        $repoPath = $this->repoPathForGroup((string) $group);
+
+        if ($repoPath === null) {
+            return [
+                'ok' => false,
+                'files' => [],
+                'status' => 404,
+                'error' => 'repo not found for group ' . $group,
+            ];
+        }
+
+        try {
+            $result = $this->runGit([
+                '--git-dir=' . $repoPath,
+                'diff',
+                $oidOld,
+                $oidNew,
+                '--',
+                (string) $node,
+            ]);
+
+            if (! $result['ok']) {
+                return [
+                    'ok' => false,
+                    'files' => [],
+                    'status' => 404,
+                    'error' => trim((string) $result['error']) ?: 'diff not found for node',
+                ];
+            }
+
+            $patchText = (string) $result['output'];
+            $files = $this->parseDiffPatch($patchText, (string) $node, $includePatch);
+
+            if ($files === []) {
+                return [
+                    'ok' => false,
+                    'files' => [],
+                    'status' => 404,
+                    'error' => 'diff not found for node',
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'files' => $files,
+                'status' => 200,
+                'error' => null,
+            ];
+        } catch (Throwable $e) {
+            return [
+                'ok' => false,
+                'files' => [],
+                'status' => 500,
+                'error' => get_class($e) . ': ' . $e->getMessage(),
+            ];
+        }
     }
 
     private function storageRoot(): string
@@ -362,6 +450,77 @@ class LocalGitHistoryProvider implements HistoryProvider
             'output' => $process->getOutput(),
             'error' => null,
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function parseDiffPatch(string $patchText, string $node, bool $includePatch): array
+    {
+        if (trim($patchText) === '') {
+            return [];
+        }
+
+        $files = [];
+        $patches = preg_split('/(?=^diff --git )/m', $patchText, -1, PREG_SPLIT_NO_EMPTY);
+
+        if (! is_array($patches)) {
+            return [];
+        }
+
+        foreach ($patches as $patch) {
+            $file = $this->parseSinglePatch((string) $patch, $node, $includePatch);
+
+            if ($file !== null) {
+                $files[] = $file;
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function parseSinglePatch(string $patchText, string $node, bool $includePatch): ?array
+    {
+        $oldFile = $node;
+        $newFile = $node;
+
+        if (preg_match('/^diff --git a\/(.+) b\/(.+)$/m', $patchText, $matches) === 1) {
+            $oldFile = $matches[1];
+            $newFile = $matches[2];
+        }
+
+        if ($oldFile !== $node && $newFile !== $node) {
+            return null;
+        }
+
+        $additions = 0;
+        $deletions = 0;
+
+        foreach (explode("\n", $patchText) as $line) {
+            if (str_starts_with($line, '+') && ! str_starts_with($line, '+++')) {
+                $additions++;
+            }
+
+            if (str_starts_with($line, '-') && ! str_starts_with($line, '---')) {
+                $deletions++;
+            }
+        }
+
+        $file = [
+            'old_file' => $oldFile,
+            'new_file' => $newFile,
+            'additions' => $additions,
+            'deletions' => $deletions,
+        ];
+
+        if ($includePatch) {
+            $file['patch'] = $patchText;
+        }
+
+        return $file;
     }
 
     /**
