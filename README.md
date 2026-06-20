@@ -86,6 +86,15 @@ Manual copy-based installation is not the recommended installation method.
 
 The companion `oxidized-history-api` service must be installed and configured separately. This LibreNMS package only provides the LibreNMS UI/integration.
 
+Install the API service from the [oxidized-history-api repository](https://github.com/WizballESY/oxidized-history-api).
+
+Recommended/tested API release: [`v0.1.0-alpha.4`](https://github.com/WizballESY/oxidized-history-api/releases/tag/v0.1.0-alpha.4).
+
+The default plugin configuration expects:
+
+- API URL: `http://127.0.0.1:8899`
+- Bearer token file: `/etc/oxidized-history-api/token`
+
 ### Install from Packagist
 
 Recommended installation method:
