@@ -1,6 +1,6 @@
 {
     "name": "wizballesy/librenms-oxidized-history",
-    "description": "LibreNMS package for viewing historical Oxidized configuration history through an external Oxidized History API service.",
+    "description": "LibreNMS package for viewing historical Oxidized configuration history directly from local Oxidized Git repositories.",
     "type": "package",
     "license": "GPL-3.0-or-later",
     "authors": [

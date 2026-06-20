@@ -1,81 +1,69 @@
 # LibreNMS Oxidized History
 
-LibreNMS package for viewing historical Oxidized configuration history through an external Oxidized History API service.
+LibreNMS package for viewing historical Oxidized configuration history directly from local Oxidized Git repositories.
 
-This package adds a `Historical Config` device tab in LibreNMS. It is intended for environments where Oxidized stores configuration history in Git repositories, and LibreNMS should be able to view older saved configurations without modifying LibreNMS core or Oxidized itself.
+This package adds a `Historical Config` device tab in LibreNMS. It is intended for environments where Oxidized stores configuration history in Git repositories and LibreNMS should be able to view older saved configurations without modifying LibreNMS core or Oxidized itself.
 
 ## Status
 
 Alpha release.
 
-Current package release:
+This README documents the local Git history provider used by the current alpha release.
 
-~~~text
-v0.1.0-alpha.6
-~~~
-
-The companion History API service is installed separately. The LibreNMS package does not run or install the API service automatically.
+The package reads Oxidized Git repositories directly from PHP. No separate companion service, Ruby daemon, HTTP listener, or bearer token is required.
 
 ## What it does
 
 - Adds a LibreNMS device tab named `Historical Config`
-- Reads historical config versions from an external History API
+- Reads historical config versions directly from local Oxidized Git repositories
 - Shows available config versions for the selected device
 - Shows selected historical config content
-- Shows diff output where available
-- Shows History API status and version
+- Shows diff output between saved versions
+- Shows local backend diagnostics and detected Git repositories
 - Shows installed plugin/package version
 - Uses LibreNMS Oxidized group mapping where available
 - Does not modify LibreNMS core
 - Does not modify Oxidized
 
-## Components
-
-This project has two parts:
-
-1. `wizballesy/librenms-oxidized-history`  
-   The LibreNMS Composer package / plugin UI.
-
-2. `oxidized-history-api`  
-   A separate service that reads Oxidized Git repositories and exposes a local HTTP API.
-
-The API service should normally listen locally, for example:
-
-~~~text
-http://127.0.0.1:8899
-~~~
-
 ## Requirements
 
 - LibreNMS with Composer package support
 - PHP 8.2 or newer
+- Git available on the LibreNMS server
 - Oxidized configuration history stored in Git repositories
-- The separate `oxidized-history-api` service installed and reachable from LibreNMS
-- Bearer token authentication recommended for the API service
+- The LibreNMS user must be able to read the Oxidized Git repository path
 
 ## Configuration
 
 The package reads configuration from `config/oxidized-history.php`.
 
-Default API URL:
+Default local Git storage root:
 
 ~~~text
-http://127.0.0.1:8899
+/opt/librenms/.config/oxidized
 ~~~
 
-Default token file:
+Default repository mode:
 
 ~~~text
-/etc/oxidized-history-api/token
+group_repos
 ~~~
 
-The token file should be readable by the LibreNMS user and should not be committed to Git.
+With the default layout, the package expects repositories such as:
 
-Example environment overrides:
+~~~text
+/opt/librenms/.config/oxidized/cisco.git
+/opt/librenms/.config/oxidized/dell.git
+/opt/librenms/.config/oxidized/paloalto.git
+~~~
+
+Optional environment overrides:
 
 ~~~env
-OXIDIZED_HISTORY_API_URL=http://127.0.0.1:8899
-OXIDIZED_HISTORY_API_TOKEN_FILE=/etc/oxidized-history-api/token
+OXIDIZED_HISTORY_GIT_STORAGE_ROOT=/opt/librenms/.config/oxidized
+OXIDIZED_HISTORY_GIT_REPO_MODE=group_repos
+OXIDIZED_HISTORY_MAX_VERSIONS=200
+OXIDIZED_HISTORY_MAX_CONFIG_BYTES=2000000
 ~~~
 
 ## Installation
@@ -84,17 +72,6 @@ This plugin is installed as a Composer package.
 
 Manual copy-based installation is not the recommended installation method.
 
-The companion `oxidized-history-api` service must be installed and configured separately. This LibreNMS package only provides the LibreNMS UI/integration.
-
-Install the API service from the [oxidized-history-api repository](https://github.com/WizballESY/oxidized-history-api).
-
-Recommended/tested API release: [`v0.1.0-alpha.4`](https://github.com/WizballESY/oxidized-history-api/releases/tag/v0.1.0-alpha.4).
-
-The default plugin configuration expects:
-
-- API URL: `http://127.0.0.1:8899`
-- Bearer token file: `/etc/oxidized-history-api/token`
-
 ### Install from Packagist
 
 Recommended installation method:
@@ -102,16 +79,30 @@ Recommended installation method:
 ~~~bash
 cd /opt/librenms
 
-sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.6
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.7
 sudo -u librenms php artisan optimize:clear
 sudo -u librenms php artisan view:clear
 ~~~
 
-This uses LibreNMS' plugin package installer and installs the package from Packagist.
+Replace `v0.1.0-alpha.7` with the version you want to install.
 
 After installation, open a LibreNMS device and select the `Historical Config` tab.
 
-### LibreNMS validate note
+## Updating
+
+To update to a specific release:
+
+~~~bash
+cd /opt/librenms
+
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.7
+sudo -u librenms php artisan optimize:clear
+sudo -u librenms php artisan view:clear
+~~~
+
+Replace `v0.1.0-alpha.7` with the version you want to install.
+
+## LibreNMS validate note
 
 Installing LibreNMS plugin packages modifies:
 
@@ -124,27 +115,40 @@ LibreNMS `validate` may warn that these files are locally modified after install
 
 Do not run `./scripts/github-remove` unless you intentionally want to remove local Composer changes.
 
-## Updating
+## Troubleshooting
 
-To update to a specific release:
+Check which backend the plugin is using:
 
 ~~~bash
 cd /opt/librenms
 
-sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.6
-sudo -u librenms php artisan optimize:clear
-sudo -u librenms php artisan view:clear
+sudo -u librenms php artisan tinker --execute='
+$contract = \WizballEsy\LibreNmsOxidizedHistory\Contracts\HistoryProvider::class;
+$provider = app($contract);
+
+echo "provider=" . get_class($provider) . PHP_EOL;
+'
 ~~~
 
-Replace `v0.1.0-alpha.6` with the version you want to install.
+Check that the LibreNMS user can read the Oxidized Git repositories:
+
+~~~bash
+sudo -u librenms ls -ld /opt/librenms/.config/oxidized
+sudo -u librenms find /opt/librenms/.config/oxidized -maxdepth 1 -type d -name "*.git" -print
+~~~
+
+Check one repository manually:
+
+~~~bash
+sudo -u librenms git --git-dir=/opt/librenms/.config/oxidized/cisco.git log -1
+~~~
 
 ## Security notes
 
-- Do not expose the History API publicly.
-- Keep the API bound to localhost or a trusted internal interface.
-- Use bearer token authentication.
-- Protect the token file with restrictive permissions.
-- Do not commit real tokens, device secrets, SNMP communities, private keys, or organization-specific configuration data.
+- Keep Oxidized Git repositories readable only by trusted local users.
+- Do not expose Oxidized Git repositories through the web server.
+- Do not commit real device configuration data, secrets, SNMP communities, private keys, or organization-specific configuration data.
+- Use normal filesystem permissions to control which local users can read historical configuration backups.
 
 ## License
 

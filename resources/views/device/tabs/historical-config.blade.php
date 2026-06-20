@@ -96,31 +96,31 @@
             border-radius: 4px;
         }
 
-        .historical-config-api-unavailable pre {
+        .historical-config-backend-unavailable pre {
             white-space: pre-wrap;
             word-break: break-word;
             margin-top: 8px;
             margin-bottom: 0;
         }
 
-        .historical-config-api-unavailable details {
+        .historical-config-backend-unavailable details {
             margin-top: 10px;
         }
 
-        .dark .historical-config-api-unavailable,
-        .dark .historical-config-api-unavailable .panel-body {
+        .dark .historical-config-backend-unavailable,
+        .dark .historical-config-backend-unavailable .panel-body {
             background-color: #111827;
             color: #d1d5db;
             border-color: #374151;
         }
 
-        .dark .historical-config-api-unavailable .panel-heading {
+        .dark .historical-config-backend-unavailable .panel-heading {
             background-color: #78350f;
             color: #fde68a;
             border-color: #92400e;
         }
 
-        .dark .historical-config-api-unavailable pre {
+        .dark .historical-config-backend-unavailable pre {
             background-color: #0b1120;
             color: #d1d5db;
             border-color: #374151;
@@ -131,7 +131,7 @@
         <br>
 
         @if(!$backendOk)
-            <div class="panel panel-warning historical-config-api-unavailable">
+            <div class="panel panel-warning historical-config-backend-unavailable">
                 <div class="panel-heading">
                     <strong>Historical Config is unavailable</strong>
                 </div>
