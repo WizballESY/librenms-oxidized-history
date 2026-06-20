@@ -92,6 +92,72 @@ For local development, use a Composer path repository with symlink enabled:
 
 Do not manually edit or rsync files into `vendor/`.
 
+## Installation
+
+This plugin is installed as a Composer package.
+
+Manual copy-based installation is not the recommended installation method.
+
+The companion `oxidized-history-api` service must be installed and configured separately. This LibreNMS package only provides the LibreNMS UI/integration.
+
+### Install from Packagist
+
+Recommended installation method:
+
+~~~bash
+cd /opt/librenms
+
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.4
+sudo -u librenms php artisan optimize:clear
+sudo -u librenms php artisan view:clear
+~~~
+
+This uses LibreNMS' plugin package installer and installs the package from Packagist.
+
+After installation, open a LibreNMS device and select the `Historical Config` tab.
+
+### Development install from GitHub
+
+For development testing before a tagged Packagist release, you can install directly from the GitHub repository:
+
+~~~bash
+cd /opt/librenms
+
+sudo -u librenms php /opt/librenms/composer.phar config repositories.librenms-oxidized-history vcs https://github.com/WizballESY/librenms-oxidized-history
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history dev-main
+sudo -u librenms php artisan optimize:clear
+sudo -u librenms php artisan view:clear
+~~~
+
+For normal users, prefer the tagged Packagist install above.
+
+### LibreNMS validate note
+
+Installing LibreNMS plugin packages modifies:
+
+~~~text
+composer.json
+composer.lock
+~~~
+
+LibreNMS `validate` may warn that these files are locally modified after installing or updating third-party plugin packages. This is expected because the plugin is installed as a Composer dependency inside the LibreNMS application directory.
+
+Do not run `./scripts/github-remove` unless you intentionally want to remove local Composer changes.
+
+## Updating
+
+To update to a specific release:
+
+~~~bash
+cd /opt/librenms
+
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.4
+sudo -u librenms php artisan optimize:clear
+sudo -u librenms php artisan view:clear
+~~~
+
+Replace `v0.1.0-alpha.4` with the version you want to install.
+
 ## Normal install model
 
 The intended normal install model is GitHub + Packagist, similar to other Composer-based LibreNMS packages.
