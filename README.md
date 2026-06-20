@@ -78,20 +78,6 @@ OXIDIZED_HISTORY_API_URL=http://127.0.0.1:8899
 OXIDIZED_HISTORY_API_TOKEN_FILE=/etc/oxidized-history-api/token
 ~~~
 
-## Local development model
-
-For local development, use a Composer path repository with symlink enabled:
-
-~~~text
-/opt/librenms/local-packages/librenms-oxidized-history
-  = active Git working tree
-
-/opt/librenms/vendor/wizballesy/librenms-oxidized-history
-  -> ../../local-packages/librenms-oxidized-history/
-~~~
-
-Do not manually edit or rsync files into `vendor/`.
-
 ## Installation
 
 This plugin is installed as a Composer package.
@@ -115,21 +101,6 @@ sudo -u librenms php artisan view:clear
 This uses LibreNMS' plugin package installer and installs the package from Packagist.
 
 After installation, open a LibreNMS device and select the `Historical Config` tab.
-
-### Development install from GitHub
-
-For development testing before a tagged Packagist release, you can install directly from the GitHub repository:
-
-~~~bash
-cd /opt/librenms
-
-sudo -u librenms php /opt/librenms/composer.phar config repositories.librenms-oxidized-history vcs https://github.com/WizballESY/librenms-oxidized-history
-sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history dev-main
-sudo -u librenms php artisan optimize:clear
-sudo -u librenms php artisan view:clear
-~~~
-
-For normal users, prefer the tagged Packagist install above.
 
 ### LibreNMS validate note
 
@@ -157,12 +128,6 @@ sudo -u librenms php artisan view:clear
 ~~~
 
 Replace `v0.1.0-alpha.4` with the version you want to install.
-
-## Normal install model
-
-The intended normal install model is GitHub + Packagist, similar to other Composer-based LibreNMS packages.
-
-Once published, normal installs should use Composer package versions instead of a local path repository.
 
 ## Security notes
 
