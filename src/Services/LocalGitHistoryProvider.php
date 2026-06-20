@@ -32,6 +32,10 @@ class LocalGitHistoryProvider implements HistoryProvider
                 'config' => [
                     'storage_root' => $storageRoot,
                     'repo_mode' => (string) config('oxidized-history.git_repo_mode', 'group_repos'),
+                    'limits' => [
+                        'max_versions' => $this->maxVersions(),
+                        'max_config_bytes' => $this->maxConfigBytes(),
+                    ],
                     'discovered_repositories' => $repositories,
                 ],
             ],

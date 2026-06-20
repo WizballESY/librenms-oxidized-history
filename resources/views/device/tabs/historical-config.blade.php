@@ -24,12 +24,18 @@
         $apiError = (string) ($apiHealth['error'] ?? '');
         $historyError = (string) ($history['error'] ?? 'Unknown error');
 
+        $backendDriver = strtolower((string) ($apiPayload['driver'] ?? config('oxidized-history.driver', 'api')));
+        $backendLabel = $backendDriver === 'local' ? 'Local Git' : 'History API';
+        $backendOkLabel = $backendDriver === 'local' ? 'healthy' : 'reachable';
+        $backendErrorLabel = $backendDriver === 'local' ? 'unhealthy' : 'unreachable';
+        $backendStorageRoot = (string) ($apiConfig['storage_root'] ?? config('oxidized-history.git_storage_root', '/opt/librenms/.config/oxidized'));
+
         $pluginPackage = 'wizballesy/librenms-oxidized-history';
         $pluginVersion = 'unknown';
         if (class_exists(\Composer\InstalledVersions::class)) {
             $pluginVersion = \Composer\InstalledVersions::getPrettyVersion($pluginPackage) ?: 'dev';
         }
-        $apiDebug = request()->boolean('api_debug');
+        $backendDebug = request()->boolean('backend_debug');
 
         $selectedVersion = null;
         foreach ($versions as $version) {
@@ -131,18 +137,32 @@
                     <strong>Historical Config is unavailable</strong>
                 </div>
                 <div class="panel-body">
-                    <p>
-                        The History API is not reachable. Check that
-                        <code>oxidized-history-api.service</code> is installed and running, and that LibreNMS can reach
-                        <code>{{ $apiUrl }}</code>.
-                    </p>
+                    @if($backendDriver === 'local')
+                        <p>
+                            The Local Git history backend is not healthy. Check that the Oxidized Git storage root is readable by LibreNMS:
+                            <code>{{ $backendStorageRoot }}</code>.
+                        </p>
 
-                    <p>
-                        Typical server checks:
-                        <code>systemctl status oxidized-history-api</code>
-                        and
-                        <code>curl {{ rtrim($apiUrl, '/') }}/health</code>
-                    </p>
+                        <p>
+                            Typical server checks:
+                            <code>ls -ld {{ $backendStorageRoot }}</code>
+                            and
+                            <code>sudo -u librenms git --git-dir={{ rtrim($backendStorageRoot, '/') }}/&lt;group&gt;.git log -1</code>
+                        </p>
+                    @else
+                        <p>
+                            The History API is not reachable. Check that
+                            <code>oxidized-history-api.service</code> is installed and running, and that LibreNMS can reach
+                            <code>{{ $apiUrl }}</code>.
+                        </p>
+
+                        <p>
+                            Typical server checks:
+                            <code>systemctl status oxidized-history-api</code>
+                            and
+                            <code>curl {{ rtrim($apiUrl, '/') }}/health</code>
+                        </p>
+                    @endif
 
                     @if($apiError !== '' || $historyError !== '')
                         <details>
@@ -205,21 +225,21 @@
                             <span class="text-muted">{{ $pluginVersion }}</span>
                         </li>
                         <li class="list-group-item" style="overflow:hidden">
-                            <strong>API:</strong>
+                            <strong>History backend:</strong>
                             @if($apiOk)
-                                <span class="text-success">ok</span>
+                                <span class="text-success">{{ $backendLabel }} ok</span>
                             @else
-                                <span class="text-danger">error</span>
+                                <span class="text-danger">{{ $backendLabel }} error</span>
                             @endif
-                            @if(!empty($apiPayload['version']))
+                            @if($backendDriver === 'api' && !empty($apiPayload['version']))
                                 <span class="text-muted">{{ $apiPayload['version'] }}</span>
                             @endif
-                            @if($apiDebug)
-                                <a class="pull-right" href="{{ request()->fullUrlWithQuery(['api_debug' => 0]) }}">
+                            @if($backendDebug)
+                                <a class="pull-right" href="{{ request()->fullUrlWithQuery(['backend_debug' => 0]) }}">
                                     hide diagnostics
                                 </a>
                             @else
-                                <a class="pull-right" href="{{ request()->fullUrlWithQuery(['api_debug' => 1]) }}">
+                                <a class="pull-right" href="{{ request()->fullUrlWithQuery(['backend_debug' => 1]) }}">
                                     debug
                                 </a>
                             @endif
@@ -227,31 +247,39 @@
                     </ul>
                 </div>
 
-                @if($apiDebug || !$apiOk)
+                @if($backendDebug || !$apiOk)
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            API diagnostics:
+                            Backend diagnostics:
                             @if($apiOk)
                                 <strong>ok</strong>
-                                <span class="label label-success pull-right">reachable</span>
+                                <span class="label label-success pull-right">{{ $backendOkLabel }}</span>
                             @else
                                 <strong>error</strong>
-                                <span class="label label-danger pull-right">unreachable</span>
+                                <span class="label label-danger pull-right">{{ $backendErrorLabel }}</span>
                             @endif
                         </div>
                         <ul class="list-group">
                             <li class="list-group-item">
+                                <strong>Backend:</strong>
+                                {{ $backendLabel }}
+                            </li>
+                            <li class="list-group-item">
                                 <strong>Service:</strong>
                                 {{ $apiPayload['service'] ?? 'Unknown' }}
                             </li>
-                            <li class="list-group-item">
-                                <strong>Version:</strong>
-                                {{ $apiPayload['version'] ?? 'Unknown' }}
-                            </li>
-                            <li class="list-group-item">
-                                <strong>Auth:</strong>
-                                {{ ($apiConfig['auth_enabled'] ?? false) ? 'enabled' : 'disabled' }}
-                            </li>
+                            @if($backendDriver === 'api' || !empty($apiPayload['version']))
+                                <li class="list-group-item">
+                                    <strong>{{ $backendDriver === 'api' ? 'API version' : 'Version' }}:</strong>
+                                    {{ $apiPayload['version'] ?? 'Unknown' }}
+                                </li>
+                            @endif
+                            @if($backendDriver === 'api')
+                                <li class="list-group-item">
+                                    <strong>Auth:</strong>
+                                    {{ ($apiConfig['auth_enabled'] ?? false) ? 'enabled' : 'disabled' }}
+                                </li>
+                            @endif
                             <li class="list-group-item">
                                 <strong>Limits:</strong>
                                 @if(count($apiLimits) > 0)
@@ -266,7 +294,7 @@
                                 @if(count($apiRepos) > 0)
                                     {{ implode(', ', $apiRepos) }}
                                 @else
-                                    <span class="text-muted">not reported by this API version</span>
+                                    <span class="text-muted">not reported</span>
                                 @endif
                             </li>
                             @if(!$apiOk)
