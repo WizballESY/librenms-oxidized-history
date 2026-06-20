@@ -5,7 +5,7 @@ namespace WizballEsy\LibreNmsOxidizedHistory\Http\Controllers;
 use App\Models\Device;
 use Illuminate\Http\Request;
 use LibreNMS\Interfaces\UI\DeviceTab;
-use WizballEsy\LibreNmsOxidizedHistory\Services\HistoryApiClient;
+use WizballEsy\LibreNmsOxidizedHistory\Contracts\HistoryProvider;
 use WizballEsy\LibreNmsOxidizedHistory\Services\OxidizedNodeResolver;
 
 class HistoricalConfigTabController implements DeviceTab
@@ -33,7 +33,7 @@ class HistoricalConfigTabController implements DeviceTab
     public function data(Device $device, Request $request): array
     {
         $resolver = app(OxidizedNodeResolver::class);
-        $client = app(HistoryApiClient::class);
+        $client = app(HistoryProvider::class);
 
         $apiHealth = $client->health();
         $resolved = $resolver->resolve($device);

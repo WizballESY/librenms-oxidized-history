@@ -4,13 +4,17 @@ namespace WizballEsy\LibreNmsOxidizedHistory;
 
 use App\View\Components\Device\PageTabs;
 use Illuminate\Support\ServiceProvider;
+use WizballEsy\LibreNmsOxidizedHistory\Contracts\HistoryProvider;
 use WizballEsy\LibreNmsOxidizedHistory\Http\Controllers\HistoricalConfigTabController;
+use WizballEsy\LibreNmsOxidizedHistory\Services\ApiHistoryProvider;
 
 class LibreNmsOxidizedHistoryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/oxidized-history.php', 'oxidized-history');
+
+        $this->app->singleton(HistoryProvider::class, ApiHistoryProvider::class);
     }
 
     public function boot(): void
