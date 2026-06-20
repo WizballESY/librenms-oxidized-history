@@ -53,6 +53,36 @@
         }
     @endphp
 
+    <style>
+        .historical-config-output {
+            overflow: auto;
+        }
+
+        .historical-config-output pre {
+            white-space: pre;
+            overflow: auto;
+        }
+
+        .dark .historical-config-output,
+        .dark .historical-config-output > div,
+        .dark .historical-config-output pre,
+        .dark .historical-config-output table,
+        .dark .historical-config-output tbody,
+        .dark .historical-config-output tr,
+        .dark .historical-config-output td,
+        .dark .historical-config-output ol,
+        .dark .historical-config-output li {
+            background-color: #111827 !important;
+            color: #d1d5db !important;
+            border-color: #374151 !important;
+        }
+
+        .dark .historical-config-output {
+            border: 1px solid #374151;
+            border-radius: 4px;
+        }
+    </style>
+
     @if(!($history['ok'] ?? false))
         <br>
         <div class="alert alert-warning">
@@ -275,7 +305,7 @@
         @endif
 
         @if($displayText !== '')
-            <div class="config">
+            <div class="config historical-config-output">
                 <input id="linenumbers" class="btn btn-primary" type="submit" value="Hide line numbers"/>
                 {!! $renderedConfig !!}
             </div>
