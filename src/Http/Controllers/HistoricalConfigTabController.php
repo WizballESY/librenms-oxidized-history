@@ -33,9 +33,9 @@ class HistoricalConfigTabController implements DeviceTab
     public function data(Device $device, Request $request): array
     {
         $resolver = app(OxidizedNodeResolver::class);
-        $client = app(HistoryProvider::class);
+        $provider = app(HistoryProvider::class);
 
-        $apiHealth = $client->health();
+        $backendHealth = $provider->health();
         $resolved = $resolver->resolve($device);
         $history = [
             'ok' => false,
@@ -63,7 +63,7 @@ class HistoricalConfigTabController implements DeviceTab
         $showDiff = $request->boolean('show_diff');
 
         if ($resolved['node_full']) {
-            $history = $client->versions($resolved['node_full']);
+            $history = $provider->versions($resolved['node_full']);
 
             if ($history['ok'] && ! empty($history['versions'])) {
                 $validOids = array_values(array_filter(array_map(
@@ -76,7 +76,7 @@ class HistoricalConfigTabController implements DeviceTab
                     ? $requestedOid
                     : (string) $validOids[0];
 
-                $selectedConfig = $client->versionConfig($resolved['node_full'], $selectedOid);
+                $selectedConfig = $provider->versionConfig($resolved['node_full'], $selectedOid);
 
                 $selectedIndex = array_search($selectedOid, $validOids, true);
                 if ($selectedIndex !== false && isset($validOids[$selectedIndex + 1])) {
@@ -84,7 +84,7 @@ class HistoricalConfigTabController implements DeviceTab
                 }
 
                 if ($showDiff && $selectedPreviousOid) {
-                    $selectedDiff = $client->diff($resolved['node_full'], $selectedOid, $selectedPreviousOid, true);
+                    $selectedDiff = $provider->diff($resolved['node_full'], $selectedOid, $selectedPreviousOid, true);
                 }
             }
         }
@@ -97,8 +97,7 @@ class HistoricalConfigTabController implements DeviceTab
             'selected_config' => $selectedConfig,
             'show_diff' => $showDiff,
             'selected_diff' => $selectedDiff,
-            'api_health' => $apiHealth,
-            'api_url' => rtrim((string) config('oxidized-history.api_url'), '/'),
+            'backend_health' => $backendHealth,
         ];
     }
 }

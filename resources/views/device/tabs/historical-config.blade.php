@@ -14,21 +14,20 @@
         $nodeFull = $resolved['node_full'] ?? null;
         $resolvedGroup = $resolved['group'] ?? null;
 
-        $apiHealth = $data['api_health'] ?? [];
-        $apiPayload = is_array($apiHealth['payload'] ?? null) ? $apiHealth['payload'] : [];
-        $apiConfig = is_array($apiPayload['config'] ?? null) ? $apiPayload['config'] : [];
-        $apiLimits = is_array($apiConfig['limits'] ?? null) ? $apiConfig['limits'] : [];
-        $apiRepos = is_array($apiConfig['discovered_repositories'] ?? null) ? $apiConfig['discovered_repositories'] : [];
-        $apiOk = (bool) ($apiHealth['ok'] ?? false);
-        $apiUrl = (string) ($data['api_url'] ?? config('oxidized-history.api_url', 'http://127.0.0.1:8899'));
-        $apiError = (string) ($apiHealth['error'] ?? '');
+        $backendHealth = $data['backend_health'] ?? [];
+        $backendPayload = is_array($backendHealth['payload'] ?? null) ? $backendHealth['payload'] : [];
+        $backendConfig = is_array($backendPayload['config'] ?? null) ? $backendPayload['config'] : [];
+        $backendLimits = is_array($backendConfig['limits'] ?? null) ? $backendConfig['limits'] : [];
+        $backendRepos = is_array($backendConfig['discovered_repositories'] ?? null) ? $backendConfig['discovered_repositories'] : [];
+        $backendOk = (bool) ($backendHealth['ok'] ?? false);
+        $backendError = (string) ($backendHealth['error'] ?? '');
         $historyError = (string) ($history['error'] ?? 'Unknown error');
 
-        $backendDriver = strtolower((string) ($apiPayload['driver'] ?? config('oxidized-history.driver', 'api')));
-        $backendLabel = $backendDriver === 'local' ? 'Local Git' : 'History API';
-        $backendOkLabel = $backendDriver === 'local' ? 'healthy' : 'reachable';
-        $backendErrorLabel = $backendDriver === 'local' ? 'unhealthy' : 'unreachable';
-        $backendStorageRoot = (string) ($apiConfig['storage_root'] ?? config('oxidized-history.git_storage_root', '/opt/librenms/.config/oxidized'));
+        $backendDriver = strtolower((string) ($backendPayload['driver'] ?? 'local'));
+        $backendLabel = 'Local Git';
+        $backendOkLabel = 'healthy';
+        $backendErrorLabel = 'unhealthy';
+        $backendStorageRoot = (string) ($backendConfig['storage_root'] ?? config('oxidized-history.git_storage_root', '/opt/librenms/.config/oxidized'));
 
         $pluginPackage = 'wizballesy/librenms-oxidized-history';
         $pluginVersion = 'unknown';
@@ -131,43 +130,28 @@
     @if(!($history['ok'] ?? false))
         <br>
 
-        @if(!$apiOk)
+        @if(!$backendOk)
             <div class="panel panel-warning historical-config-api-unavailable">
                 <div class="panel-heading">
                     <strong>Historical Config is unavailable</strong>
                 </div>
                 <div class="panel-body">
-                    @if($backendDriver === 'local')
-                        <p>
-                            The Local Git history backend is not healthy. Check that the Oxidized Git storage root is readable by LibreNMS:
-                            <code>{{ $backendStorageRoot }}</code>.
-                        </p>
+                    <p>
+                        The Local Git history backend is not healthy. Check that the Oxidized Git storage root is readable by LibreNMS:
+                        <code>{{ $backendStorageRoot }}</code>.
+                    </p>
 
-                        <p>
-                            Typical server checks:
-                            <code>ls -ld {{ $backendStorageRoot }}</code>
-                            and
-                            <code>sudo -u librenms git --git-dir={{ rtrim($backendStorageRoot, '/') }}/&lt;group&gt;.git log -1</code>
-                        </p>
-                    @else
-                        <p>
-                            The History API is not reachable. Check that
-                            <code>oxidized-history-api.service</code> is installed and running, and that LibreNMS can reach
-                            <code>{{ $apiUrl }}</code>.
-                        </p>
+                    <p>
+                        Typical server checks:
+                        <code>ls -ld {{ $backendStorageRoot }}</code>
+                        and
+                        <code>sudo -u librenms git --git-dir={{ rtrim($backendStorageRoot, '/') }}/&lt;group&gt;.git log -1</code>
+                    </p>
 
-                        <p>
-                            Typical server checks:
-                            <code>systemctl status oxidized-history-api</code>
-                            and
-                            <code>curl {{ rtrim($apiUrl, '/') }}/health</code>
-                        </p>
-                    @endif
-
-                    @if($apiError !== '' || $historyError !== '')
+                    @if($backendError !== '' || $historyError !== '')
                         <details>
                             <summary>Technical details</summary>
-                            <pre>{{ $apiError !== '' ? $apiError : $historyError }}</pre>
+                            <pre>{{ $backendError !== '' ? $backendError : $historyError }}</pre>
                         </details>
                     @endif
                 </div>
@@ -226,13 +210,10 @@
                         </li>
                         <li class="list-group-item" style="overflow:hidden">
                             <strong>History backend:</strong>
-                            @if($apiOk)
+                            @if($backendOk)
                                 <span class="text-success">{{ $backendLabel }} ok</span>
                             @else
                                 <span class="text-danger">{{ $backendLabel }} error</span>
-                            @endif
-                            @if($backendDriver === 'api' && !empty($apiPayload['version']))
-                                <span class="text-muted">{{ $apiPayload['version'] }}</span>
                             @endif
                             @if($backendDebug)
                                 <a class="pull-right" href="{{ request()->fullUrlWithQuery(['backend_debug' => 0]) }}">
@@ -247,11 +228,11 @@
                     </ul>
                 </div>
 
-                @if($backendDebug || !$apiOk)
+                @if($backendDebug || !$backendOk)
                     <div class="panel panel-default">
                         <div class="panel-heading">
                             Backend diagnostics:
-                            @if($apiOk)
+                            @if($backendOk)
                                 <strong>ok</strong>
                                 <span class="label label-success pull-right">{{ $backendOkLabel }}</span>
                             @else
@@ -266,43 +247,31 @@
                             </li>
                             <li class="list-group-item">
                                 <strong>Service:</strong>
-                                {{ $apiPayload['service'] ?? 'Unknown' }}
+                                {{ $backendPayload['service'] ?? 'Unknown' }}
                             </li>
-                            @if($backendDriver === 'api' || !empty($apiPayload['version']))
-                                <li class="list-group-item">
-                                    <strong>{{ $backendDriver === 'api' ? 'API version' : 'Version' }}:</strong>
-                                    {{ $apiPayload['version'] ?? 'Unknown' }}
-                                </li>
-                            @endif
-                            @if($backendDriver === 'api')
-                                <li class="list-group-item">
-                                    <strong>Auth:</strong>
-                                    {{ ($apiConfig['auth_enabled'] ?? false) ? 'enabled' : 'disabled' }}
-                                </li>
-                            @endif
                             <li class="list-group-item">
                                 <strong>Limits:</strong>
-                                @if(count($apiLimits) > 0)
-                                    {{ $apiLimits['max_versions'] ?? '?' }} versions /
-                                    {{ $apiLimits['max_config_bytes'] ?? '?' }} bytes
+                                @if(count($backendLimits) > 0)
+                                    {{ $backendLimits['max_versions'] ?? '?' }} versions /
+                                    {{ $backendLimits['max_config_bytes'] ?? '?' }} bytes
                                 @else
                                     <span class="text-muted">not reported</span>
                                 @endif
                             </li>
                             <li class="list-group-item">
                                 <strong>Detected backup repos:</strong>
-                                @if(count($apiRepos) > 0)
-                                    {{ implode(', ', $apiRepos) }}
+                                @if(count($backendRepos) > 0)
+                                    {{ implode(', ', $backendRepos) }}
                                 @else
                                     <span class="text-muted">not reported</span>
                                 @endif
                             </li>
-                            @if(!$apiOk)
+                            @if(!$backendOk)
                                 <li class="list-group-item text-danger">
                                     <strong>Error:</strong>
-                                    {{ $apiHealth['error'] ?? 'Unknown error' }}
-                                    @if(!empty($apiHealth['status']))
-                                        <span class="text-muted">HTTP {{ $apiHealth['status'] }}</span>
+                                    {{ $backendHealth['error'] ?? 'Unknown error' }}
+                                    @if(!empty($backendHealth['status']))
+                                        <span class="text-muted">HTTP {{ $backendHealth['status'] }}</span>
                                     @endif
                                 </li>
                             @endif

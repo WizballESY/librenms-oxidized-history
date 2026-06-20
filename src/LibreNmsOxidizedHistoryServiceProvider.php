@@ -6,7 +6,6 @@ use App\View\Components\Device\PageTabs;
 use Illuminate\Support\ServiceProvider;
 use WizballEsy\LibreNmsOxidizedHistory\Contracts\HistoryProvider;
 use WizballEsy\LibreNmsOxidizedHistory\Http\Controllers\HistoricalConfigTabController;
-use WizballEsy\LibreNmsOxidizedHistory\Services\ApiHistoryProvider;
 use WizballEsy\LibreNmsOxidizedHistory\Services\LocalGitHistoryProvider;
 
 class LibreNmsOxidizedHistoryServiceProvider extends ServiceProvider
@@ -15,13 +14,7 @@ class LibreNmsOxidizedHistoryServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/oxidized-history.php', 'oxidized-history');
 
-        $this->app->singleton(HistoryProvider::class, function ($app) {
-            $driver = strtolower((string) config('oxidized-history.driver', 'api'));
-
-            return $driver === 'local'
-                ? $app->make(LocalGitHistoryProvider::class)
-                : $app->make(ApiHistoryProvider::class);
-        });
+        $this->app->singleton(HistoryProvider::class, LocalGitHistoryProvider::class);
     }
 
     public function boot(): void
