@@ -20,6 +20,9 @@
         $apiLimits = is_array($apiConfig['limits'] ?? null) ? $apiConfig['limits'] : [];
         $apiRepos = is_array($apiConfig['discovered_repositories'] ?? null) ? $apiConfig['discovered_repositories'] : [];
         $apiOk = (bool) ($apiHealth['ok'] ?? false);
+        $apiUrl = (string) ($data['api_url'] ?? config('oxidized-history.api_url', 'http://127.0.0.1:8899'));
+        $apiError = (string) ($apiHealth['error'] ?? '');
+        $historyError = (string) ($history['error'] ?? 'Unknown error');
         $apiDebug = request()->boolean('api_debug');
 
         $selectedVersion = null;
@@ -81,19 +84,79 @@
             border: 1px solid #374151;
             border-radius: 4px;
         }
+
+        .historical-config-api-unavailable pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-top: 8px;
+            margin-bottom: 0;
+        }
+
+        .historical-config-api-unavailable details {
+            margin-top: 10px;
+        }
+
+        .dark .historical-config-api-unavailable,
+        .dark .historical-config-api-unavailable .panel-body {
+            background-color: #111827;
+            color: #d1d5db;
+            border-color: #374151;
+        }
+
+        .dark .historical-config-api-unavailable .panel-heading {
+            background-color: #78350f;
+            color: #fde68a;
+            border-color: #92400e;
+        }
+
+        .dark .historical-config-api-unavailable pre {
+            background-color: #0b1120;
+            color: #d1d5db;
+            border-color: #374151;
+        }
     </style>
 
     @if(!($history['ok'] ?? false))
         <br>
-        <div class="alert alert-warning">
-            <strong>No historical config available.</strong>
-            <br>
-            {{ $history['error'] ?? 'Unknown error' }}
-            @if(isset($history['status']) && $history['status'])
+
+        @if(!$apiOk)
+            <div class="panel panel-warning historical-config-api-unavailable">
+                <div class="panel-heading">
+                    <strong>Historical Config is unavailable</strong>
+                </div>
+                <div class="panel-body">
+                    <p>
+                        The History API is not reachable. Check that
+                        <code>oxidized-history-api.service</code> is installed and running, and that LibreNMS can reach
+                        <code>{{ $apiUrl }}</code>.
+                    </p>
+
+                    <p>
+                        Typical server checks:
+                        <code>systemctl status oxidized-history-api</code>
+                        and
+                        <code>curl {{ rtrim($apiUrl, '/') }}/health</code>
+                    </p>
+
+                    @if($apiError !== '' || $historyError !== '')
+                        <details>
+                            <summary>Technical details</summary>
+                            <pre>{{ $apiError !== '' ? $apiError : $historyError }}</pre>
+                        </details>
+                    @endif
+                </div>
+            </div>
+        @else
+            <div class="alert alert-warning">
+                <strong>No historical config available.</strong>
                 <br>
-                HTTP status: {{ $history['status'] }}
-            @endif
-        </div>
+                {{ $historyError }}
+                @if(isset($history['status']) && $history['status'])
+                    <br>
+                    HTTP status: {{ $history['status'] }}
+                @endif
+            </div>
+        @endif
     @else
         <br>
         <div class="row">
