@@ -108,4 +108,4 @@ Once published, normal installs should use Composer package versions instead of 
 
 ## License
 
-MIT
+GPL-3.0-or-later
