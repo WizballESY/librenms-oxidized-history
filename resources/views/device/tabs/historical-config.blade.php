@@ -23,6 +23,12 @@
         $apiUrl = (string) ($data['api_url'] ?? config('oxidized-history.api_url', 'http://127.0.0.1:8899'));
         $apiError = (string) ($apiHealth['error'] ?? '');
         $historyError = (string) ($history['error'] ?? 'Unknown error');
+
+        $pluginPackage = 'wizballesy/librenms-oxidized-history';
+        $pluginVersion = 'unknown';
+        if (class_exists(\Composer\InstalledVersions::class)) {
+            $pluginVersion = \Composer\InstalledVersions::getPrettyVersion($pluginPackage) ?: 'dev';
+        }
         $apiDebug = request()->boolean('api_debug');
 
         $selectedVersion = null;
@@ -193,6 +199,10 @@
                             <span class="label label-primary pull-right">
                                 {{ count($versions) }} versions
                             </span>
+                        </li>
+                        <li class="list-group-item" style="overflow:hidden">
+                            <strong>Plugin:</strong>
+                            <span class="text-muted">{{ $pluginVersion }}</span>
                         </li>
                         <li class="list-group-item" style="overflow:hidden">
                             <strong>API:</strong>
