@@ -102,7 +102,7 @@ Recommended installation method:
 ~~~bash
 cd /opt/librenms
 
-sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.4
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.5
 sudo -u librenms php artisan optimize:clear
 sudo -u librenms php artisan view:clear
 ~~~
@@ -131,12 +131,12 @@ To update to a specific release:
 ~~~bash
 cd /opt/librenms
 
-sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.4
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.5
 sudo -u librenms php artisan optimize:clear
 sudo -u librenms php artisan view:clear
 ~~~
 
-Replace `v0.1.0-alpha.4` with the version you want to install.
+Replace `v0.1.0-alpha.5` with the version you want to install.
 
 ## Security notes
 
