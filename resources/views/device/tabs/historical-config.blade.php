@@ -174,6 +174,7 @@
                 <div class="panel panel-primary">
                     <div class="panel-heading">
                         History status: <strong>success</strong>
+                        <span class="pull-right">Plugin: {{ $pluginVersion }}</span>
                     </div>
                     <ul class="list-group">
                         <li class="list-group-item">
@@ -182,14 +183,6 @@
                                 {{ $nodeFull }}
                             @else
                                 <span class="text-danger">Not resolved</span>
-                            @endif
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Oxidized group:</strong>
-                            @if($resolvedGroup)
-                                {{ $resolvedGroup }}
-                            @else
-                                <span class="text-muted">not resolved</span>
                             @endif
                         </li>
                         <li class="list-group-item">
@@ -203,10 +196,6 @@
                             <span class="label label-primary pull-right">
                                 {{ count($versions) }} versions
                             </span>
-                        </li>
-                        <li class="list-group-item" style="overflow:hidden">
-                            <strong>Plugin:</strong>
-                            <span class="text-muted">{{ $pluginVersion }}</span>
                         </li>
                         <li class="list-group-item" style="overflow:hidden">
                             <strong>History backend:</strong>
@@ -242,12 +231,20 @@
                         </div>
                         <ul class="list-group">
                             <li class="list-group-item">
-                                <strong>Backend:</strong>
-                                {{ $backendLabel }}
+                                <strong>Oxidized group:</strong>
+                                @if($resolvedGroup)
+                                    {{ $resolvedGroup }}
+                                @else
+                                    <span class="text-muted">not resolved</span>
+                                @endif
                             </li>
                             <li class="list-group-item">
-                                <strong>Service:</strong>
-                                {{ $backendPayload['service'] ?? 'Unknown' }}
+                                <strong>Git storage root:</strong>
+                                <code>{{ $backendStorageRoot }}</code>
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Git repo lookup:</strong>
+                                by Oxidized group
                             </li>
                             <li class="list-group-item">
                                 <strong>Limits:</strong>
