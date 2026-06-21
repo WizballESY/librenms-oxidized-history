@@ -96,6 +96,30 @@
             border-radius: 4px;
         }
 
+        .dark .historical-config-diff-output pre.diff {
+            color: #d1d5db !important;
+        }
+
+        .dark .historical-config-diff-output span[style*="#440088"] {
+            color: #d2a8ff !important;
+        }
+
+        .dark .historical-config-diff-output span[style*="#991111"] {
+            color: #ff7b72 !important;
+        }
+
+        .dark .historical-config-diff-output span[style*="#00b000"] {
+            color: #7ee787 !important;
+        }
+
+        .dark .historical-config-diff-output span[style*="#0011dd"] {
+            color: #79c0ff !important;
+        }
+
+        .dark .historical-config-diff-output span[style*="#888822"] {
+            color: #d29922 !important;
+        }
+
         .historical-config-backend-unavailable pre {
             white-space: pre-wrap;
             word-break: break-word;
@@ -372,7 +396,7 @@
         @endif
 
         @if($displayText !== '')
-            <div class="config historical-config-output">
+            <div class="config historical-config-output{{ $showDiff ? ' historical-config-diff-output' : '' }}">
                 <input id="linenumbers" class="btn btn-primary" type="submit" value="Hide line numbers"/>
                 {!! $renderedConfig !!}
             </div>
