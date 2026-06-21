@@ -7,13 +7,17 @@ use App\Models\Device;
 
 class OxidizedNodeResolver
 {
+    public function __construct(private readonly LocalGitRepositoryDiscovery $localGitRepositoryDiscovery)
+    {
+    }
+
     /**
      * @return array{group: string|null, node: string, node_full: string|null, warning: string|null}
      */
     public function resolve(Device $device): array
     {
-        $group = $this->resolveGroup($device);
         $node = $this->resolveNode($device);
+        $group = $this->resolveGroup($device, $node);
 
         return [
             'group' => $group,
@@ -23,9 +27,10 @@ class OxidizedNodeResolver
         ];
     }
 
-    private function resolveGroup(Device $device): ?string
+    private function resolveGroup(Device $device, string $node): ?string
     {
         return $this->resolveGroupFromLibreNmsOxidizedMaps($device)
+            ?? $this->localGitRepositoryDiscovery->findGroupForNode($node)
             ?? $this->resolveGroupFromPluginMap($device)
             ?? $this->resolveDefaultGroup();
     }

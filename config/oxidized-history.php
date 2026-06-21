@@ -11,6 +11,8 @@ return [
 
     'visibility_mode' => env('OXIDIZED_HISTORY_VISIBILITY_MODE', 'always'),
 
+    // Fallback only. OxidizedNodeResolver uses LibreNMS oxidized.maps.group first.
+    // This map is used when LibreNMS has no matching Oxidized group mapping.
     'group_os_map' => [
         'ios' => 'cisco',
         'iosxe' => 'cisco',
