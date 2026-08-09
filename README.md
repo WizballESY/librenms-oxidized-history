@@ -112,7 +112,8 @@ cd /opt/librenms
 
 sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.9
 sudo -u librenms php artisan optimize:clear
-sudo -u librenms php artisan view:clear
+sudo -u librenms php artisan optimize
+sudo -u librenms php artisan config:clear
 ~~~
 
 Replace `v0.1.0-alpha.9` with the version you want to install.
@@ -128,7 +129,8 @@ cd /opt/librenms
 
 sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.9
 sudo -u librenms php artisan optimize:clear
-sudo -u librenms php artisan view:clear
+sudo -u librenms php artisan optimize
+sudo -u librenms php artisan config:clear
 ~~~
 
 Replace `v0.1.0-alpha.9` with the version you want to install.
