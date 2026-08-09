@@ -20,7 +20,9 @@ class LibreNmsOxidizedHistoryServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $viewPath = __DIR__ . '/../resources/views';
+        $routePath = __DIR__ . '/../routes/web.php';
 
+        $this->loadRoutesFrom($routePath);
         $this->loadViewsFrom($viewPath, 'librenms-oxidized-history');
 
         /*

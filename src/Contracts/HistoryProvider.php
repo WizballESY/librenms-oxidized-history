@@ -20,7 +20,17 @@ interface HistoryProvider
     public function versionConfig(string $nodeFull, string $oid): array;
 
     /**
-     * @return array{ok: bool, files: array<int, array<string, mixed>>, status: int|null, error: string|null}
+     * @return array{
+     *     ok: bool,
+     *     files: array<int, array<string, mixed>>,
+     *     groups: list<array{
+     *         type: string,
+     *         original: list<array{line: int, text: string}>,
+     *         revised: list<array{line: int, text: string}>
+     *     }>,
+     *     status: int|null,
+     *     error: string|null
+     * }
      */
     public function diff(string $nodeFull, string $oidNew, string $oidOld, bool $includePatch = true): array;
 }

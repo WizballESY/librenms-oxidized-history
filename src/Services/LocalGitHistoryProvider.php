@@ -235,6 +235,7 @@ class LocalGitHistoryProvider implements HistoryProvider
             return [
                 'ok' => false,
                 'files' => [],
+                'groups' => [],
                 'status' => 400,
                 'error' => 'invalid node_full/node',
             ];
@@ -244,6 +245,7 @@ class LocalGitHistoryProvider implements HistoryProvider
             return [
                 'ok' => false,
                 'files' => [],
+                'groups' => [],
                 'status' => 400,
                 'error' => 'group is required',
             ];
@@ -253,6 +255,7 @@ class LocalGitHistoryProvider implements HistoryProvider
             return [
                 'ok' => false,
                 'files' => [],
+                'groups' => [],
                 'status' => 400,
                 'error' => 'invalid oid',
             ];
@@ -262,6 +265,7 @@ class LocalGitHistoryProvider implements HistoryProvider
             return [
                 'ok' => false,
                 'files' => [],
+                'groups' => [],
                 'status' => 400,
                 'error' => 'invalid oid2',
             ];
@@ -273,12 +277,47 @@ class LocalGitHistoryProvider implements HistoryProvider
             return [
                 'ok' => false,
                 'files' => [],
+                'groups' => [],
                 'status' => 404,
                 'error' => 'repo not found for group ' . $group,
             ];
         }
 
         try {
+            $oldBytes = $this->revisionFileSize(
+                $repoPath,
+                $oidOld,
+                (string) $node
+            );
+
+            $newBytes = $this->revisionFileSize(
+                $repoPath,
+                $oidNew,
+                (string) $node
+            );
+
+            if ($oldBytes === null || $newBytes === null) {
+                return [
+                    'ok' => false,
+                    'files' => [],
+                    'groups' => [],
+                    'status' => 404,
+                    'error' => 'stored version not found for diff',
+                ];
+            }
+
+            $maxBytes = $this->maxConfigBytes();
+
+            if ($oldBytes > $maxBytes || $newBytes > $maxBytes) {
+                return [
+                    'ok' => false,
+                    'files' => [],
+                    'groups' => [],
+                    'status' => 413,
+                    'error' => 'diff source exceeds max_config_bytes',
+                ];
+            }
+
             $result = $this->runGit([
                 '--git-dir=' . $repoPath,
                 'diff',
@@ -292,18 +331,31 @@ class LocalGitHistoryProvider implements HistoryProvider
                 return [
                     'ok' => false,
                     'files' => [],
+                    'groups' => [],
                     'status' => 404,
                     'error' => trim((string) $result['error']) ?: 'diff not found for node',
                 ];
             }
 
             $patchText = (string) $result['output'];
+
+            if (trim($patchText) === '') {
+                return [
+                    'ok' => true,
+                    'files' => [],
+                    'groups' => [],
+                    'status' => 200,
+                    'error' => null,
+                ];
+            }
+
             $files = $this->parseDiffPatch($patchText, (string) $node, $includePatch);
 
             if ($files === []) {
                 return [
                     'ok' => false,
                     'files' => [],
+                    'groups' => [],
                     'status' => 404,
                     'error' => 'diff not found for node',
                 ];
@@ -312,6 +364,7 @@ class LocalGitHistoryProvider implements HistoryProvider
             return [
                 'ok' => true,
                 'files' => $files,
+                'groups' => $this->parseUnifiedDiff($patchText),
                 'status' => 200,
                 'error' => null,
             ];
@@ -319,6 +372,7 @@ class LocalGitHistoryProvider implements HistoryProvider
             return [
                 'ok' => false,
                 'files' => [],
+                'groups' => [],
                 'status' => 500,
                 'error' => get_class($e) . ': ' . $e->getMessage(),
             ];
@@ -366,6 +420,35 @@ class LocalGitHistoryProvider implements HistoryProvider
         }
 
         return ! str_starts_with($value, '-');
+    }
+
+    private function revisionFileSize(
+        string $repoPath,
+        string $oid,
+        string $node
+    ): ?int
+    {
+        $result = $this->runGit([
+            '--git-dir=' . $repoPath,
+            'cat-file',
+            '-s',
+            $oid . ':' . $node,
+        ]);
+
+        if (! $result['ok']) {
+            return null;
+        }
+
+        $value = trim((string) $result['output']);
+
+        if (
+            $value === ''
+            || preg_match('/\A\d+\z/', $value) !== 1
+        ) {
+            return null;
+        }
+
+        return (int) $value;
     }
 
     private function maxVersions(): int
@@ -454,6 +537,78 @@ class LocalGitHistoryProvider implements HistoryProvider
             'output' => $process->getOutput(),
             'error' => null,
         ];
+    }
+
+    /**
+     * Convert a unified Git diff into the structured line groups used by
+     * LibreNMS' Config backup diff view.
+     *
+     * @return list<array{
+     *     type: string,
+     *     original: list<array{line: int, text: string}>,
+     *     revised: list<array{line: int, text: string}>
+     * }>
+     */
+    private function parseUnifiedDiff(string $diff): array
+    {
+        $groups = [];
+        $origLine = 0;
+        $revLine = 0;
+        $inHunk = false;
+
+        foreach (explode("\n", $diff) as $line) {
+            if (str_starts_with($line, '@@')) {
+                if (preg_match('/@@ -(\d+)(?:,\d+)? \\+(\d+)(?:,\d+)? @@/', $line, $matches) === 1) {
+                    $origLine = (int) $matches[1];
+                    $revLine = (int) $matches[2];
+                }
+
+                $inHunk = true;
+
+                continue;
+            }
+
+            if (! $inHunk || $line === '') {
+                continue;
+            }
+
+            $text = substr($line, 1);
+
+            switch ($line[0]) {
+                case ' ':
+                    $groups[] = [
+                        'type' => 'COMMON',
+                        'original' => [['line' => $origLine, 'text' => $text]],
+                        'revised' => [['line' => $revLine, 'text' => $text]],
+                    ];
+                    $origLine++;
+                    $revLine++;
+                    break;
+
+                case '-':
+                    $groups[] = [
+                        'type' => 'DELETED',
+                        'original' => [['line' => $origLine, 'text' => $text]],
+                        'revised' => [],
+                    ];
+                    $origLine++;
+                    break;
+
+                case '+':
+                    $groups[] = [
+                        'type' => 'INSERTED',
+                        'original' => [],
+                        'revised' => [['line' => $revLine, 'text' => $text]],
+                    ];
+                    $revLine++;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return $groups;
     }
 
     /**
