@@ -8,23 +8,29 @@ This package adds a `Historical Config` device tab in LibreNMS. It is intended f
 
 Alpha release.
 
-This README documents the local Git history provider used by the current alpha release.
+The current release line uses a local Git history provider and a LibreNMS-native configuration history workflow.
 
 The package reads Oxidized Git repositories directly from PHP. No separate companion service, Ruby daemon, HTTP listener, or bearer token is required.
 
 ## What it does
 
 - Adds a LibreNMS device tab named `Historical Config`
+- Uses a LibreNMS-style configuration history interface
 - Reads historical config versions directly from local Oxidized Git repositories
 - Shows available config versions for the selected device
-- Shows selected historical config content
-- Shows diff output between saved versions
-- Shows local backend diagnostics and detected Git repositories
-- Shows installed plugin/package version
+- Loads saved configurations without reloading the page
+- Uses LibreNMS configuration syntax highlighting
+- Shows structured line-by-line diffs between saved versions
+- Supports copying and downloading saved configurations
+- Can request an immediate backup through the existing LibreNMS Oxidized integration
+- Automatically refreshes the backup list after a requested backup completes
+- Distinguishes between a new Git revision and a successful backup with no new revision
+- Shows backend status in the normal view
+- Restricts detailed backend diagnostics to LibreNMS administrators
 - Uses LibreNMS Oxidized group mapping where available
 - Can discover the Oxidized group from local Git history when mapping is missing
 - Does not modify LibreNMS core
-- Does not modify Oxidized
+- Does not require modifications to Oxidized
 
 ## Requirements
 
@@ -72,6 +78,8 @@ OXIDIZED_HISTORY_MAX_VERSIONS=200
 OXIDIZED_HISTORY_MAX_CONFIG_BYTES=2000000
 ~~~
 
+`OXIDIZED_HISTORY_MAX_CONFIG_BYTES` limits the size of stored configurations that the plugin will load. The same limit is checked before generating diffs, preventing oversized configuration blobs from being loaded or diffed.
+
 Example LibreNMS Oxidized group mapping:
 
 ~~~text
@@ -102,12 +110,12 @@ Recommended installation method:
 ~~~bash
 cd /opt/librenms
 
-sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.8
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.9
 sudo -u librenms php artisan optimize:clear
 sudo -u librenms php artisan view:clear
 ~~~
 
-Replace `v0.1.0-alpha.8` with the version you want to install.
+Replace `v0.1.0-alpha.9` with the version you want to install.
 
 After installation, open a LibreNMS device and select the `Historical Config` tab.
 
@@ -118,12 +126,27 @@ To update to a specific release:
 ~~~bash
 cd /opt/librenms
 
-sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.8
+sudo -u librenms ./lnms plugin:add wizballesy/librenms-oxidized-history v0.1.0-alpha.9
 sudo -u librenms php artisan optimize:clear
 sudo -u librenms php artisan view:clear
 ~~~
 
-Replace `v0.1.0-alpha.8` with the version you want to install.
+Replace `v0.1.0-alpha.9` with the version you want to install.
+
+## Permissions and security
+
+Viewing configuration history follows LibreNMS configuration-access permissions.
+
+Requesting an immediate Oxidized backup additionally requires the LibreNMS `oxidized.refresh` permission.
+
+Detailed backend diagnostics, including local Git storage information and detected repository names, are restricted to LibreNMS administrators.
+
+Security recommendations:
+
+- Keep Oxidized Git repositories readable only by trusted local users.
+- Do not expose Oxidized Git repositories through the web server.
+- Do not commit real device configuration data, secrets, SNMP communities, private keys, or organization-specific configuration data.
+- Use normal filesystem permissions to control which local users can read historical configuration backups.
 
 ## LibreNMS validate note
 
@@ -165,13 +188,6 @@ Check one repository manually:
 ~~~bash
 sudo -u librenms git --git-dir=/opt/librenms/.config/oxidized/cisco.git log -1
 ~~~
-
-## Security notes
-
-- Keep Oxidized Git repositories readable only by trusted local users.
-- Do not expose Oxidized Git repositories through the web server.
-- Do not commit real device configuration data, secrets, SNMP communities, private keys, or organization-specific configuration data.
-- Use normal filesystem permissions to control which local users can read historical configuration backups.
 
 ## License
 
