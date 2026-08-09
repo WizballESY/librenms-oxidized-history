@@ -43,7 +43,9 @@
             $pluginVersion = \Composer\InstalledVersions::getPrettyVersion($pluginPackage) ?: 'dev';
         }
 
-        $backendDebug = request()->boolean('backend_debug');
+        $canBackendDebug = \Illuminate\Support\Facades\Gate::allows('admin');
+        $backendDebug = $canBackendDebug
+            && request()->boolean('backend_debug');
 
         $latestVersion = $versions[0] ?? null;
         $latestTime = is_array($latestVersion)
@@ -129,22 +131,24 @@
                         </span>
                     </div>
 
-                    <div class="tw:whitespace-nowrap">
-                        @if($backendDebug)
-                            <a href="{{ request()->fullUrlWithQuery(['backend_debug' => 0]) }}">
-                                hide diagnostics
-                            </a>
-                        @else
-                            <a href="{{ request()->fullUrlWithQuery(['backend_debug' => 1]) }}">
-                                debug
-                            </a>
-                        @endif
-                    </div>
+                    @if($canBackendDebug)
+                        <div class="tw:whitespace-nowrap">
+                            @if($backendDebug)
+                                <a href="{{ request()->fullUrlWithQuery(['backend_debug' => 0]) }}">
+                                    hide diagnostics
+                                </a>
+                            @else
+                                <a href="{{ request()->fullUrlWithQuery(['backend_debug' => 1]) }}">
+                                    debug
+                                </a>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </x-panel>
         </div>
 
-        @if($backendDebug || !$backendOk)
+        @if($canBackendDebug && ($backendDebug || !$backendOk))
             <div class="tw:mt-4">
                 <x-panel title="Backend diagnostics">
                     <dl class="tw:m-0">

@@ -175,6 +175,34 @@ class LocalGitHistoryProvider implements HistoryProvider
         }
 
         try {
+            $bytes = $this->revisionFileSize(
+                $repoPath,
+                $oid,
+                (string) $node
+            );
+
+            if ($bytes === null) {
+                return [
+                    'ok' => false,
+                    'config' => null,
+                    'bytes' => null,
+                    'lines' => null,
+                    'status' => 404,
+                    'error' => 'stored version not found',
+                ];
+            }
+
+            if ($bytes > $this->maxConfigBytes()) {
+                return [
+                    'ok' => false,
+                    'config' => null,
+                    'bytes' => $bytes,
+                    'lines' => null,
+                    'status' => 413,
+                    'error' => 'stored version exceeds max_config_bytes',
+                ];
+            }
+
             $result = $this->runGit([
                 '--git-dir=' . $repoPath,
                 'show',
@@ -193,19 +221,6 @@ class LocalGitHistoryProvider implements HistoryProvider
             }
 
             $content = (string) $result['output'];
-            $bytes = strlen($content);
-            $maxBytes = $this->maxConfigBytes();
-
-            if ($bytes > $maxBytes) {
-                return [
-                    'ok' => false,
-                    'config' => null,
-                    'bytes' => $bytes,
-                    'lines' => null,
-                    'status' => 413,
-                    'error' => 'stored version exceeds max_config_bytes',
-                ];
-            }
 
             return [
                 'ok' => true,
